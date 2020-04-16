@@ -1,0 +1,11 @@
+--General File System Information--
+Block Size in Bytes: 4096
+Total Number of Blocks: 25600
+Disk Size in Bytes: 104857600
+Maximum Number of Blocks Per Group: 32768
+Inode Size in Bytes: 128
+Number of Inodes Per Group: 25600
+Number of Inode Blocks Per Group: 800
+Number of Groups: 0
+--Individual group Information--Number of Free Inodes: 25580
+--Root Directory Entries--Total Number of Inodes: 25600
