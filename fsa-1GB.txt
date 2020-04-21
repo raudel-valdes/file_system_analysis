@@ -1,0 +1,25 @@
+lseekRv after superblock lseek: 1024
+--General File System Information--
+	Block Size in Bytes: 4096
+	Total Number of Blocks: 262144
+	Disk Size in Bytes: 1073741824
+	Maximum Number of Blocks Per Group: 32768
+	Inode Size in Bytes: 256
+	Number of Inodes Per Group: 8192
+	Number of Inode Blocks Per Group: 16384
+	Number of Groups: 8
+
+--Individual group Information--
+	-Group 0-
+		Block IDs: 0 - 32767
+		Block Bitmap Block ID: 65
+		Inode Bitmap Block ID: 66
+		Inode Table Block ID: 67
+		Number of Free Blocks: 32183
+		Number of Free Inodes: 8181
+		Number of Dictionaries: 2
+		Free Block IDs: 
+-585-32759
+		Free Inode IDs: 
+11-8191
+--Root Directory Entries--

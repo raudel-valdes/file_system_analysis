@@ -7,19 +7,19 @@
 
 //Function Prototypes
 void genFileSysInfo(struct ext2_super_block **);
-void indivGroupInfo(struct ext2_super_block **, char *);
+void indivGroupInfo(int fd, struct ext2_super_block **, char *);
 void rootDirEntries(struct ext2_super_block **);
 unsigned int calcBlockSizeBytes(struct ext2_super_block ***);
 unsigned int calcNumbInodeBlocksPGroup(struct ext2_super_block ***, unsigned int ); 
-void calcFreeBlockIDRanges(unsigned int, unsigned int);
-void calcFreeInodeIDRanges(unsigned int, unsigned int);
+void calcFreeBlockIDRanges(int fd, unsigned int, unsigned int);
+void calcFreeInodeIDRanges(int fd, unsigned int, unsigned int);
 
 
 int main(int argc, char *argv[]) {
 
   int rv, fd;
   struct ext2_super_block *superBlock = NULL;
-  off_t currentPosition;
+  // off_t currentPosition;
   
   if (argc != 2) {
     fprintf (stderr, "%s: Usage: ./sb disk_image_file\n", "sb");
@@ -32,8 +32,8 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  currentPosition = lseek(fd, 0, SEEK_CUR);
-  printf("Current position #1: %lu\n", currentPosition);
+  // currentPosition = lseek(fd, 0, SEEK_CUR);
+  // printf("Current position #1: %lu\n", currentPosition);
   
   /*skip the boot info - the first 1024 bytes - using the lseek*/
   unsigned int lseekRV = lseek(fd, 1024, SEEK_CUR);
@@ -50,15 +50,10 @@ int main(int argc, char *argv[]) {
     fprintf (stderr, "%s: Error in malloc\n", "sb");
     exit(1);
   }
-  currentPosition = lseek(fd, 0, SEEK_CUR);
 
   /*read the whole superblock and load into the ext2_super_block struct*/
   /*assumes the struct fields are laid out in the order they are defined*/
-  printf("Current position #2: %lu\n", currentPosition);
   rv = read(fd, superBlock, sizeof(struct ext2_super_block));
-
-    currentPosition = lseek(fd, 0, SEEK_CUR);
-    printf("Current position #3: %lu\n", currentPosition);
 
   if (rv == -1) {
     perror("File read failed");
@@ -67,7 +62,7 @@ int main(int argc, char *argv[]) {
   if (rv == 1024) {
 
     genFileSysInfo(&superBlock);
-    indivGroupInfo(&superBlock, argv[1]);
+    indivGroupInfo(fd, &superBlock, argv[1]);
     rootDirEntries(&superBlock);
 
   }    
@@ -101,7 +96,7 @@ void genFileSysInfo(struct ext2_super_block **superBlock) {
 
 }
 
-void indivGroupInfo(struct ext2_super_block **superBlock, char *filePath) {
+void indivGroupInfo(int fd, struct ext2_super_block **superBlock, char *filePath) {
     
   unsigned int numberOfGroups = 1 + ((**superBlock).s_blocks_count - 1) / (**superBlock).s_blocks_per_group;
   //unsigned int sizeOfGroupDiscriptor = numberOfGroups * sizeof(struct ext2_group_desc);
@@ -114,14 +109,6 @@ void indivGroupInfo(struct ext2_super_block **superBlock, char *filePath) {
   unsigned int endingID = totalNumbBlocks < numberOfBlocksPerGroup ? totalNumbBlocks-1 : firstDataBlockID + numberOfBlocksPerGroup-1;
   unsigned int remainingBlocks = totalNumbBlocks - numberOfBlocksPerGroup;
   int rv = 0;
-  int fd = 0;
-
-
-  fd = open(filePath, O_RDONLY);
-  if (fd == -1) {
-    perror("disk_image_file open failed");
-    exit(1);
-  }
 
   groupDescriptors = malloc(sizeof(struct ext2_group_desc));
   if (groupDescriptors == NULL) {
@@ -129,28 +116,19 @@ void indivGroupInfo(struct ext2_super_block **superBlock, char *filePath) {
     exit(1);
   }
   
-    off_t currentPosition;
-    currentPosition = lseek(fd, 0, SEEK_CUR);
-  printf("Current position #3.5: %lu\n", currentPosition);
+  //   off_t currentPosition;
+  //   currentPosition = lseek(fd, 0, SEEK_CUR);
+  // printf("Current position #3.5: %lu\n", currentPosition);
 
   //moves the head to the position of the group discriptor block
-  unsigned int lseekRV = lseek(fd, blockSize, SEEK_CUR);
+  unsigned int lseekRV = lseek(fd, blockSize, SEEK_SET);
   if (lseekRV != blockSize) {
-    perror("File seek failed");
+    perror("idivGroupInfo: File seek failed");
     exit(1);
   }
-  
-   
-  currentPosition = lseek(fd, 0, SEEK_CUR);
-  printf("Current position #3.6: %lu\n", currentPosition);
 
   rv = read(fd, groupDescriptors, sizeof(struct ext2_group_desc));
-
-  currentPosition = lseek(fd, 0, SEEK_CUR);
-  printf("Current position #3.7: %lu\n", currentPosition);
  
-  printf("FD after groupDiscriptor read: %u\n", fd);
-  
   if (rv == -1) {
     perror("File read failed");
     exit(1);
@@ -158,7 +136,8 @@ void indivGroupInfo(struct ext2_super_block **superBlock, char *filePath) {
 
   printf("\n--Individual group Information--\n");
 
-  for(int i = 0; i < numberOfGroups; i++) {
+  //for(int i = 0; i < blockgroups; i++) {
+  for(int i = 0; i < 1; i++) {
 
     printf("\t-Group %d-\n", i);
     printf("\t\tBlock IDs: %u - %u\n", beginningID, endingID);
@@ -169,16 +148,16 @@ void indivGroupInfo(struct ext2_super_block **superBlock, char *filePath) {
     printf("\t\tNumber of Free Inodes: %u\n", groupDescriptors->bg_free_inodes_count);
     printf("\t\tNumber of Dictionaries: %u\n", groupDescriptors->bg_used_dirs_count);
       
-    off_t currentPosition;
-    currentPosition = lseek(fd, 0, SEEK_CUR);
-    printf("Current position #4: %lu\n", currentPosition);
+    // off_t currentPosition;
+    // currentPosition = lseek(fd, 0, SEEK_CUR);
+    // printf("Current position #4: %lu\n", currentPosition);
 
 
     printf("\t\tFree Block IDs: \n");
-    calcFreeBlockIDRanges(blockSize, groupDescriptors->bg_block_bitmap);
+    calcFreeBlockIDRanges(fd, blockSize, groupDescriptors->bg_block_bitmap);
 
     printf("\t\tFree Inode IDs: \n");
-    calcFreeInodeIDRanges(blockSize, groupDescriptors->bg_inode_bitmap);
+    calcFreeInodeIDRanges(fd, blockSize, groupDescriptors->bg_inode_bitmap);
 
     if (remainingBlocks >= numberOfGroups) {
 
@@ -192,12 +171,8 @@ void indivGroupInfo(struct ext2_super_block **superBlock, char *filePath) {
       endingID += numberOfBlocksPerGroup;
       remainingBlocks -= numberOfBlocksPerGroup;
 
-    } else {
-      printf("ERROR: There are more groups than there is remaining blocks!");
     }
   }
-
-  //close(fd); MAYBE
 }
 
 void rootDirEntries(struct ext2_super_block **superBlock) {
@@ -219,22 +194,15 @@ unsigned int calcNumbInodeBlocksPGroup(struct ext2_super_block ***superBlock, un
   return (totalNumbBlocks * inodeSizeBytes) / blockSizeBytes;
 }
 
-void calcFreeBlockIDRanges(unsigned int blockSize, unsigned int bg_block_bitmap) {
+void calcFreeBlockIDRanges(int fd, unsigned int blockSize, unsigned int bg_block_bitmap) {
   
   unsigned char *blockBitmap = NULL;
-  int rv = 0, lseekRV;
-  unsigned int blockOffset = bg_block_bitmap * blockSize;
+  int rv = 0, lseekRV = 0;
+  unsigned int blockOffset = (bg_block_bitmap) * blockSize;
   bool freeBlock = false;
-
   bool freeBlockAlreadyExists = false;
-  printf("blockoffset: %u, bg_blovk_bitmap: %u, blockSize %u\n", blockOffset, bg_block_bitmap, blockSize);
-  
 
-  int fd2 = open("ext2disk_100mb.img", O_RDONLY);
-  if (fd2 == -1) {
-    perror("disk_image_file open failed");
-    exit(1);
-  }
+  // printf("blockoffset: %u, bg_blovk_bitmap: %u, blockSize %u\n", blockOffset, bg_block_bitmap, blockSize);
 
   
   blockBitmap = malloc(blockSize);
@@ -242,83 +210,72 @@ void calcFreeBlockIDRanges(unsigned int blockSize, unsigned int bg_block_bitmap)
     fprintf (stderr, "%s: Error in malloc\n", "blockBitmap");
     exit(1);
   }
+  
+
+  lseekRV = lseek(fd, blockOffset, SEEK_SET);
+  //printf("position: %d, fd: %d, blockSize: %d, bg_block_bitmap: %d, blockOffset: %d\n",lseekRV, fd, blockSize, bg_block_bitmap, blockOffset);
 
   //moves the head to the position of the group discriptor block
-  printf("bg_group_bitmap: %u\n", bg_block_bitmap);
- lseekRV = lseek(fd2, blockOffset, SEEK_SET);
-  printf("lseekRv: %d\n", lseekRV);
-
   if(lseekRV != blockOffset) {
     perror("calcFreeBlockIDRanges: File seek failed");
     exit(1);
   }
 
-  rv = read(fd2, blockBitmap, blockSize);
+  rv = read(fd, blockBitmap, blockSize);
   
   if (rv == -1) {
     perror("File read failed");
     exit(1);
   }
 
+  int current = 0;
+  int previous = -1;
+  bool activeRange = false;
+
   for (int i = 0; i < blockSize; i++) {
 
     for(int j = 0; j < 8; j++) {
       //printf("BYTE %d -> BIT %d\n", i, (blockBitmap[i] & (1 << j)) != 0);
+      current = ((blockBitmap[i] & (1 << j)) != 0);
 
-      if(!((blockBitmap[i] & (1 << j)) != 0)) {
+      if(current == 0 && current != previous) {
         
-        if(!freeBlock) {
-          
           if(freeBlockAlreadyExists) printf(", ");
 
           freeBlockAlreadyExists = true;
-          freeBlock = true;
-
-          if(!i) i = 1;
-          if(!j) j = 1;
-
-          printf("%d", (i) * (j) * 8);
-
-        }
-
-
-      } else {
-
-        if(freeBlock) {
-
-          freeBlock = false;
-
-          if(!i) i =1;
-          if(!j) j =1;
+          activeRange = true;
           
-          printf("-%d", ((j) * (i) * 8) - 1);
+        printf("-%d", (i * 8) + j);
 
-        }
+      } 
+
+
+      if(((current == 1 && current != previous && freeBlockAlreadyExists )|| (i == blockSize -1)) && activeRange) {
+
+          
+        printf("-%d", (i * 8) + j - 1);
+
+        activeRange = false;
+
       }
 
+      previous = current;
     }
-
   }
+  
 
   printf("\n");
 
   free(blockBitmap);
 }
 
-void calcFreeInodeIDRanges(unsigned int blockSize, unsigned int bg_inode_bitmap) {
+void calcFreeInodeIDRanges(int fd, unsigned int blockSize, unsigned int bg_inode_bitmap) {
 
-   unsigned char *blockBitmap = NULL;
+  unsigned char *blockBitmap = NULL;
   int rv = 0, lseekRV;
   unsigned int blockOffset = bg_inode_bitmap * blockSize;
   bool freeBlock = false;
   bool freeBlockAlreadyExists = false;
-
-  int fd2 = open("ext2disk_100mb.img", O_RDONLY);
-  if (fd2 == -1) {
-    perror("disk_image_file open failed");
-    exit(1);
-  }
-
   
   blockBitmap = malloc(blockSize);
   if (blockBitmap == NULL) {
@@ -327,61 +284,57 @@ void calcFreeInodeIDRanges(unsigned int blockSize, unsigned int bg_inode_bitmap)
   }
 
   //moves the head to the position of the group discriptor block
- lseekRV = lseek(fd2, blockOffset, SEEK_SET);
-  printf("lseekRv: %d\n", lseekRV);
+  lseekRV = lseek(fd, blockOffset, SEEK_SET);
 
   if(lseekRV != blockOffset) {
-    perror("calcFreeBlockIDRanges: File seek failed");
+    perror("calcFreeInodeIDRanges: File seek failed");
     exit(1);
   }
 
-  rv = read(fd2, blockBitmap, blockSize);
+  rv = read(fd, blockBitmap, blockSize);
   
   if (rv == -1) {
     perror("File read failed");
     exit(1);
   }
 
+  int current = 0;
+  int previous = -1;
+  bool activeRange = false;
+
   for (int i = 0; i < blockSize; i++) {
 
     for(int j = 0; j < 8; j++) {
       //printf("BYTE %d -> BIT %d\n", i, (blockBitmap[i] & (1 << j)) != 0);
+      current = ((blockBitmap[i] & (1 << j)) != 0);
 
-      if(!((blockBitmap[i] & (1 << j)) != 0)) {
+      if(current == 0 && current != previous && !activeRange) {
         
-        if(!freeBlock) {
-          
           if(freeBlockAlreadyExists) printf(", ");
 
           freeBlockAlreadyExists = true;
-          freeBlock = true;
-
-          if(!i) i = 1;
-          if(!j) j = 1;
-
-          printf("%d", (i) * (j) * 8);
-
-        }
+          activeRange = true;
 
 
-      } else {
+          printf("%d", (i * 8) + j );
 
-        if(freeBlock) {
+      } 
 
-          freeBlock = false;
 
-          if(!i) i =1;
-          if(!j) j =1;
+      if(((current == 1 && current != previous && freeBlockAlreadyExists )|| (i == blockSize -1)) && activeRange) {
+
           
-          printf("-%d", ((j) * (i) * 8) - 1);
+        printf("-%d", (i * 8) + j - 1);
 
-        }
+        activeRange = false;
+        
+
       }
 
+      previous = current;
     }
-
   }
-
+  
   printf("\n");
 
   free(blockBitmap);
