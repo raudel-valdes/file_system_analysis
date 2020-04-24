@@ -1,25 +1,47 @@
-lseekRv after superblock lseek: 1024
 --General File System Information--
-	Block Size in Bytes: 4096
-	Total Number of Blocks: 25600
-	Disk Size in Bytes: 104857600
-	Maximum Number of Blocks Per Group: 32768
-	Inode Size in Bytes: 128
-	Number of Inodes Per Group: 25600
-	Number of Inode Blocks Per Group: 800
-	Number of Groups: 0
+Block Size in Bytes: 4096
+Total Number of Blocks: 25600
+Disk Size in Bytes: 104857600
+Maximum Number of Blocks Per Group: 32768
+Inode Size in Bytes: 128
+Number of Inodes Per Group: 25600
+Number of Inode Blocks Per Group: 800
+Number of Groups: 0
 
---Individual group Information--
-	-Group 0-
-		Block IDs: 0 - 25599
-		Block Bitmap Block ID: 8
-		Inode Bitmap Block ID: 9
-		Inode Table Block ID: 10
-		Number of Free Blocks: 24776
-		Number of Free Inodes: 25580
-		Number of Dictionaries: 5
-		Free Block IDs: 
-816-16383, 16392-25599
-		Free Inode IDs: 
-1-25600
---Root Directory Entries--
+--Individual Group Information--
+-Group 0-
+Block IDs: 0-25599
+Block Bitmap Block ID: 8
+Inode Bitmap Block ID: 9
+Inode Table Block ID: 10
+Number of Free Blocks: 24776
+Number of Free Inodes: 25580
+Number of Dictionaries: 5
+Free Block IDs: 816-16383, 16392-25599
+Free Inode IDs: 21-25600
+
+--Root Directory Entries-- 
+Inode: 2 
+Entry Length: 12 
+Name Length: 1 
+File Type: 2 
+Name: . 
+
+Inode: 2 
+Entry Length: 12 
+Name Length: 2 
+File Type: 2 
+Name: .. 
+
+Inode: 11 
+Entry Length: 20 
+Name Length: 10 
+File Type: 2 
+Name: lost+found 
+
+Inode: 12 
+Entry Length: 4052 
+Name Length: 9 
+File Type: 2 
+Name: searchdir 
+
